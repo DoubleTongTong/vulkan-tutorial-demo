@@ -9,14 +9,10 @@
 GLFWwindow* window;
 VulkanRenderer vulkanRenderer;
 
-int initWindow(std::string wName = "Test Window", const int width = 800, const int height = 600)
+void initWindow(std::string wName = "Test Window", const int width = 800, const int height = 600)
 {
 	// initialize GLFW
 	glfwInit();
-
-	// Create Vulkan Renderer instance
-	if (vulkanRenderer.init(window) == EXIT_FAILURE)
-		return EXIT_FAILURE;
 
 	// Set GLFW to NOT work with OpenGL
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -29,6 +25,10 @@ int main()
 {
 	// Create Window
 	initWindow();
+
+	// Create Vulkan Renderer instance
+	if (vulkanRenderer.init(window) == EXIT_FAILURE)
+		return EXIT_FAILURE;
 
 	// Loop until closed
 	while (!glfwWindowShouldClose(window))
