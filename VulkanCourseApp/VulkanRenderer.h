@@ -55,6 +55,11 @@ private:
 	void createRenderPass();
 	void createGraphicsPipeline();
 
+	// - Validation
+	VkDebugUtilsMessengerEXT debugMessenger;
+	void setupDebugMessenger();
+	bool checkValidationLayerSupport();
+
 	// - Get Functions
 	void getPhysicalDevice();
 

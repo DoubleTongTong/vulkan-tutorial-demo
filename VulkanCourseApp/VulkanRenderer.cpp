@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "VulkanRenderer.h"
+#include "VulkanValidation.h"
 
 VulkanRenderer::VulkanRenderer()
 {
@@ -11,6 +12,7 @@ int VulkanRenderer::init(GLFWwindow* newWindow)
 
 	try {
 		createInstance();
+		setupDebugMessenger();
 		createSurface();
 		getPhysicalDevice();
 		createLogicalDevice();
@@ -37,12 +39,23 @@ void VulkanRenderer::cleanup()
 	}
 	vkDestroySwapchainKHR(mainDevice.logicalDevice, swapchain, NULL);
 	vkDestroySurfaceKHR(instance, surface, NULL);
+
+	if (enableValidationLayers)
+	{
+		DestroyDebugUtilsMessengerEXT(instance, debugMessenger, NULL);
+	}
+
 	vkDestroyDevice(mainDevice.logicalDevice, NULL);
 	vkDestroyInstance(instance, NULL);
 }
 
 void VulkanRenderer::createInstance()
 {
+	if (enableValidationLayers && !checkValidationLayerSupport())
+	{
+		throw std::runtime_error("validation layers requested, but not available!");
+	}
+
 	// Information about the application itself
 	// Most data here doesn't affect the program and is for developer convenience
 	VkApplicationInfo appInfo = {};
@@ -75,6 +88,11 @@ void VulkanRenderer::createInstance()
 		instanceExtensions.push_back(glfwExtensions[i]);
 	}
 
+	if (enableValidationLayers)
+	{
+		instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+	}
+
 	// Check Instance Extensions supported
 	if (!checkInstanceExtensionSupport(&instanceExtensions))
 	{
@@ -84,9 +102,25 @@ void VulkanRenderer::createInstance()
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.size());
 	createInfo.ppEnabledExtensionNames = instanceExtensions.data();
 
-	// TODO: Set up Validation Layers that Instance will use
-	createInfo.enabledLayerCount = 0;
-	createInfo.ppEnabledLayerNames = NULL;
+	// Set up Validation Layers that Instance will use
+	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
+	if (enableValidationLayers)
+	{
+		debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+		debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+		debugCreateInfo.pfnUserCallback = debugCallback;
+
+		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+		createInfo.ppEnabledLayerNames = validationLayers.data();
+		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+	}
+	else
+	{
+		createInfo.enabledLayerCount = 0;
+		createInfo.ppEnabledLayerNames = NULL;
+		createInfo.pNext = nullptr;
+	}
 
 	// Create instance
 	VkResult result = vkCreateInstance(&createInfo, NULL, &instance);
@@ -493,6 +527,50 @@ void VulkanRenderer::createGraphicsPipeline()
 	// Destroy Shader Modules, no longer needed after Pipeline created
 	vkDestroyShaderModule(mainDevice.logicalDevice, fragmentShaderModule, NULL);
 	vkDestroyShaderModule(mainDevice.logicalDevice, vertexShaderModule, NULL);
+}
+
+void VulkanRenderer::setupDebugMessenger()
+{
+	if (!enableValidationLayers)
+		return;
+
+	VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	createInfo.pfnUserCallback = debugCallback;
+	createInfo.pUserData = nullptr;
+
+	if (CreateDebugUtilsMessengerEXT(instance, &createInfo, NULL, &debugMessenger) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to set up debug messenger!");
+	}
+}
+
+bool VulkanRenderer::checkValidationLayerSupport()
+{
+	uint32_t layerCount;
+	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+	std::vector<VkLayerProperties> availableLayers(layerCount);
+	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+	for (const char* layerName : validationLayers) {
+		bool layerFound = false;
+
+		for (const auto& layerProperties : availableLayers) {
+			if (strcmp(layerName, layerProperties.layerName) == 0) {
+				layerFound = true;
+				break;
+			}
+		}
+
+		if (!layerFound) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 void VulkanRenderer::getPhysicalDevice()

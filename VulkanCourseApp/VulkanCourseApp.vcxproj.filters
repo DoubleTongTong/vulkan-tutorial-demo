@@ -29,5 +29,8 @@
     <ClInclude Include="Utilities.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="VulkanValidation.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
