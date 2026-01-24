@@ -22,10 +22,12 @@ inline VkResult CreateDebugUtilsMessengerEXT(
     VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-    if (func != nullptr) {
+    if (func != nullptr)
+    {
         return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
     }
-    else {
+    else
+    {
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 }
@@ -35,7 +37,8 @@ inline void DestroyDebugUtilsMessengerEXT(VkInstance instance,
     const VkAllocationCallbacks* pAllocator)
 {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (func != nullptr) {
+    if (func != nullptr)
+    {
         func(instance, debugMessenger, pAllocator);
     }
 }
@@ -46,8 +49,20 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* pUserData)
 {
-    if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-        std::cerr << "Validation Layer: " << pCallbackData->pMessage << std::endl;
+    const char* prefix = "[UNKNOWN]";
+
+    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
+        prefix = "[VERBOSE]";
+    else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+        prefix = "[INFO]";
+    else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+        prefix = "[WARNING]";
+    else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+        prefix = "[ERROR]";
+
+    if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+    {
+        printf("%s Validation Layer: %s\n", prefix, pCallbackData->pMessage);
     }
     return VK_FALSE;
 }
