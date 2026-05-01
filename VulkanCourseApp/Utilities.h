@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 
 static int MAX_FRAME_DRAWS = 0;
-const int MAX_OBJECTS = 2;
+const int MAX_OBJECTS = 3;
 
 const std::vector<const char*> deviceExtensions =
 {
